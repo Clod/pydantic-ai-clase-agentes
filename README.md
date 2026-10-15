@@ -23,7 +23,7 @@ Este proyecto contiene, en el directorio `clase_agentes/`, un script que respond
 ## Ejecución
 
 1. Entrar al directorio y instalar las dependencias: `cd clase_agentes && pip install -r requirements.txt`
-2. Definir la clave de API de OpenRouter: `export OPENROUTER_API_KEY=...`
+2. Escribir la clave de API de OpenRouter en `clase_agentes/.env` (variable `OPENROUTER_API_KEY`). El script carga ese archivo con `python-dotenv`. El archivo `.env` está excluido del repositorio por `.gitignore`.
 3. Ejecutar: `python agente.py`
 4. Revisar el archivo `clase_agentes.log`, que contiene el nivel DEBUG.
 
@@ -93,6 +93,19 @@ El modelo recibe el esquema de la herramienta con un solo parámetro, `nombre`. 
 | El agente y los datos están mezclados | El agente y los datos están separados |
 
 El modelo decide qué argumentos pasar a la herramienta. El programador decide con qué datos trabaja la herramienta. El argumento `deps` es el canal para esos datos.
+
+## Información sensible y el archivo `.env`
+
+Una clave de API no debe escribirse en el código. Un valor escrito en el código queda en el historial de git y en cada copia del repositorio, y en un repositorio público cualquiera puede usarlo. Una clave expuesta debe revocarse y reemplazarse.
+
+El proyecto separa el código de la configuración:
+
+1. `clase_agentes/.env` contiene los valores: `OPENROUTER_API_KEY` y `OPENROUTER_MODEL`.
+2. `.gitignore` excluye `.env`, así que git no lo sube al repositorio.
+3. `agente.py` carga el archivo con `load_dotenv(AQUI / ".env")` y lee los valores con `os.environ`.
+4. Si falta la clave, `crear_modelo()` termina con el mensaje `Falta la variable de entorno OPENROUTER_API_KEY.`
+
+Cada persona que clona el repositorio crea su propio `.env` con su propia clave.
 
 ## Salida tipada
 

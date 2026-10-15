@@ -3,7 +3,7 @@
 Flujo: pregunta -> modelo -> llamada a herramienta -> ficha -> modelo
 -> respuesta validada como RespuestaAlumno.
 
-Ejecución:  OPENROUTER_API_KEY=... python agente.py
+Ejecución:  python agente.py  (lee OPENROUTER_API_KEY desde .env)
 """
 
 import logging
@@ -11,6 +11,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.models.openrouter import OpenRouterModel
@@ -22,6 +23,7 @@ from fichas import buscar_ficha, listar_fichas
 logger = logging.getLogger("clase_agentes.agente")
 
 AQUI = Path(__file__).parent
+load_dotenv(AQUI / ".env")  # antes de leer MODELO; no pisa variables ya definidas
 PREGUNTA = "¿Qué promedio tiene Juan Pérez?"
 MODELO = os.environ.get("OPENROUTER_MODEL", "anthropic/claude-haiku-5.5")
 
