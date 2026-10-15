@@ -32,7 +32,16 @@ def test_listar_fichas_devuelve_cinco_nombres():
 
 
 def _modelo_simulado(nombres_a_buscar: list[str]) -> FunctionModel:
-    """Llama a buscar_alumno con cada nombre y luego entrega la salida final."""
+    """Crea un modelo simulado que llama a buscar_alumno y luego responde.
+
+    Args:
+        nombres_a_buscar (list[str]): Nombres que el modelo simulado pasa a
+            buscar_alumno, uno por llamada y en orden.
+
+    Returns:
+        FunctionModel: Modelo que, una vez agotados los nombres, entrega la
+        salida final FINAL.
+    """
     pendientes = list(nombres_a_buscar)
 
     def respuesta(mensajes, info: AgentInfo) -> ModelResponse:

@@ -16,7 +16,19 @@ FORMATO = "%(asctime)s | %(levelname)-7s | %(name)s | %(message)s"
 
 
 def configurar_logging(archivo: Path) -> None:
-    """Consola en nivel INFO y archivo en nivel DEBUG."""
+    """Configura el logger raíz con un handler de consola y uno de archivo.
+
+    La consola muestra los mensajes desde el nivel INFO. El archivo registra
+    los mensajes desde el nivel DEBUG. También limita a WARNING el nivel de
+    los loggers de las bibliotecas de red.
+
+    Args:
+        archivo (Path): Ruta del archivo de log. Se sobrescribe en cada
+            ejecución.
+
+    Returns:
+        None: La función modifica la configuración global de logging.
+    """
 
     # Formatter: aplica la plantilla FORMATO a cada mensaje antes de escribirlo.
     # Cambiar FORMATO cambia el aspecto de todos los mensajes, en consola y en archivo.

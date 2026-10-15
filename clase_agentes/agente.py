@@ -23,30 +23,44 @@ from fichas import buscar_ficha, listar_fichas
 # Defino la etiqueta para que el logger marque los eventos de este módulo.
 logger = logging.getLogger("clase_agentes.agente")
 
+
+# __file__ es una variable que Python define en cada módulo. Contiene la ruta del archivo que se está ejecutando: .../clase_agentes/agente.py.
+# Path(__file__) convierte ese texto en un objeto Path de pathlib.
+# .parent devuelve el directorio que contiene el archivo: .../clase_agentes.
+# AQUI guarda ese directorio. El nombre va en mayúsculas porque es una constante por convención.
 AQUI = Path(__file__).parent
 load_dotenv(AQUI / ".env")  # antes de leer MODELO; no pisa variables ya definidas
+# Hardodeamos la pregunta para simplificar el ejemplo, pero podría pasarse como parámetro por línea de comandos.
 PREGUNTA = "¿Qué promedio tiene Juan Pérez?"
+# Tomamos el modelo de la variable de entorno OPENROUTER_MODEL. Si no existe, usamos anthropic/claude-haiku-5.5.
+# La variable de entorno se define en el archivo .env, que no se sube a GitHub.
 MODELO = os.environ.get("OPENROUTER_MODEL", "anthropic/claude-haiku-5.5")
 
 
-# 1. Salida tipada: pydantic-ai valida la respuesta del modelo contra esta clase.
+# Defino una clase para estructurar la respuesta del agente. Pydantic se encarga de validar que la respuesta sea correcta.
+# Esto es una gran ventaja de pydantic-ai, ya que evita errores de tipeo y asegura que la respuesta sea correcta.
 class RespuestaAlumno(BaseModel):
     nombre: str
     carrera: str
     promedio: float = Field(ge=0, le=10)
 
 
-# 2. Dependencias: datos que las herramientas necesitan y el modelo no controla.
-@dataclass(frozen=True)
+# Defino las dependencias: datos que las herramientas necesitan y el modelo no controla.
+# En este caso, el directorio donde se encuentran las fichas.
+@dataclass(frozen=True) # frozen=True significa que el objeto no se puede modificar después de crearlo.
 class Deps:
     directorio: Path
 
 
-# 3. Agente: el modelo se indica al ejecutar, no al crear el agente.
+# Defino el agente: el modelo se indica al ejecutar, no al crear el agente.
 agent = Agent(
+    # deps_type indica que el agente necesita dependencias y cuál es su tipo.
     deps_type=Deps,
+    # output_type indica el tipo de salida esperada.
     output_type=RespuestaAlumno,
+    # retries indica cuántas veces se reintenta la llamada al modelo en caso de error al procesar la respuesta.
     retries=2,
+    # instructions indica las instrucciones que se le dan al agente.
     instructions=(
         "Respondé preguntas sobre alumnos. Usá las herramientas para obtener "
         "los datos. No inventes datos que no estén en una ficha."
@@ -54,10 +68,24 @@ agent = Agent(
 )
 
 
-# 4. Herramientas. El parámetro `ctx` no aparece en el esquema que ve el modelo.
+# Herramientas. El parámetro `ctx` no aparece en el esquema que ve el modelo.
+# @agent.tool registra la función como herramienta del agente.
 @agent.tool
 def listar_alumnos(ctx: RunContext[Deps]) -> list[str]:
-    """Devuelve los nombres de todos los alumnos disponibles."""
+    """Lista los alumnos que tienen ficha.
+
+    Usar esta herramienta cuando no se conoce el nombre exacto de un alumno,
+    o para saber qué alumnos existen antes de llamar a buscar_alumno.
+
+    Args:
+        ctx (RunContext[Deps]): Contexto de la ejecución. Entrega las
+            dependencias: en ctx.deps.directorio está el directorio con las
+            fichas. No forma parte del esquema que recibe el modelo.
+
+    Returns:
+        list[str]: Nombre completo de cada alumno, por ejemplo
+        ["Juan Pérez", "María Gómez"].
+    """
     nombres = listar_fichas(ctx.deps.directorio)
     logger.info("Herramienta listar_alumnos -> %d alumnos", len(nombres))
     return nombres
@@ -65,7 +93,24 @@ def listar_alumnos(ctx: RunContext[Deps]) -> list[str]:
 
 @agent.tool
 def buscar_alumno(ctx: RunContext[Deps], nombre: str) -> str:
-    """Devuelve la ficha (nombre, edad, carrera, promedio) de un alumno."""
+    """Devuelve la ficha de un alumno.
+
+    La ficha contiene nombre, edad, carrera y promedio. Si el nombre no
+    corresponde a ninguna ficha, la herramienta pide al modelo que reintente.
+
+    Args:
+        ctx (RunContext[Deps]): Contexto de la ejecución. Entrega las
+            dependencias: en ctx.deps.directorio está el directorio con las
+            fichas. No forma parte del esquema que recibe el modelo.
+        nombre (str): Nombre completo del alumno, por ejemplo "Juan Pérez".
+            Se ignoran las mayúsculas y las tildes.
+
+    Returns:
+        str: Contenido de la ficha en formato Markdown.
+
+    Raises:
+        ModelRetry: Si no existe una ficha para ese nombre.
+    """
     logger.info("Herramienta buscar_alumno(nombre=%r)", nombre)
     ficha = buscar_ficha(ctx.deps.directorio, nombre)
     if ficha is None:
