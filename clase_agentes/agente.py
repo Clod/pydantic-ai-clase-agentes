@@ -20,6 +20,7 @@ from pydantic_ai.providers.openrouter import OpenRouterProvider
 from config_logging import configurar_logging
 from fichas import buscar_ficha, listar_fichas
 
+# Defino la etiqueta para que el logger marque los eventos de este módulo.
 logger = logging.getLogger("clase_agentes.agente")
 
 AQUI = Path(__file__).parent
