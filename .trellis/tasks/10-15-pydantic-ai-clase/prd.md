@@ -20,7 +20,7 @@ Script Python didáctico para una clase. Enseña los conceptos básicos de IA ag
 4. La ruta del subdirectorio llega al agente como dependencia (`deps_type` + `RunContext`), no como constante global.
 5. Salida tipada: `output_type` es un modelo Pydantic `RespuestaAlumno` con los campos `nombre`, `carrera` y `promedio`, validado por pydantic-ai.
 6. Logging con `logging`: handler de consola en nivel INFO, handler de archivo en nivel DEBUG, formatter con marca de tiempo, nivel y nombre del logger.
-7. Se registra cada llamada a herramienta con sus argumentos, el uso de tokens (`result.usage()`) y la secuencia de mensajes (`result.all_messages()`).
+7. Se registra cada llamada a herramienta con sus argumentos, el uso de tokens (`result.usage`) y la secuencia de mensajes (`result.all_messages()`).
 8. Clave de API de OpenRouter leída desde variable de entorno, nunca escrita en el código.
 
 ## Acceptance Criteria

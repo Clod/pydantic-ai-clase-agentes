@@ -149,7 +149,7 @@ El módulo `logging` tiene la misma arquitectura que log4j.
 
 Qué se registra:
 
-* INFO: la pregunta, el modelo, cada llamada a herramienta con sus argumentos, el uso de tokens (`result.usage()`) y la respuesta.
+* INFO: la pregunta, el modelo, cada llamada a herramienta con sus argumentos, el uso de tokens (`result.usage`) y la respuesta.
 * WARNING: una ficha no encontrada.
 * DEBUG: la secuencia completa de mensajes (`result.all_messages()`) y la ficha leída.
 
