@@ -96,7 +96,7 @@ def main() -> None:
 
     for mensaje in result.all_messages():
         logger.debug("Mensaje: %r", mensaje)
-    logger.info("Uso: %s", result.usage())
+    logger.info("Uso: %s", result.usage)
     logger.info("Respuesta: %s", result.output)
 
 
