@@ -22,7 +22,7 @@ Este proyecto contiene, en el directorio `clase_agentes/`, un script que respond
 
 ## Ejecución
 
-1. Entrar al directorio y instalar las dependencias: `cd clase_agentes && pip install -r requirements.txt`
+1. Crear el entorno virtual en la raíz del proyecto e instalar las dependencias: `uv venv .venv && uv pip install -r clase_agentes/requirements.txt`
 2. Escribir la clave de API de OpenRouter en `clase_agentes/.env` (variable `OPENROUTER_API_KEY`). El script carga ese archivo con `python-dotenv`. El archivo `.env` está excluido del repositorio por `.gitignore`.
 3. Ejecutar: `python agente.py`
 4. Revisar el archivo `clase_agentes.log`, que contiene el nivel DEBUG.
