@@ -71,7 +71,7 @@ def configurar_logging(archivo: Path) -> None:
     raiz.addHandler(en_archivo)
 
     # Las bibliotecas de red generan mucho DEBUG que no aporta a la clase.
-    for ruidosa in ("httpx", "httpcore", "openai"):
+    for ruidosa in ("httpx", "httpx2", "httpcore", "openai"):
         # Limito el nivel de log de estas bibliotecas a WARNING para no saturar la consola
         # y que no se mezclen los mensajes de log con los nuestros.
         logging.getLogger(ruidosa).setLevel(logging.WARNING)
