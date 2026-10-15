@@ -52,7 +52,7 @@ class Deps:
     directorio: Path
 
 
-# Defino el agente: el modelo se indica al ejecutar, no al crear el agente.
+# Defino el agente: el modelo se indica al ejecutar, NO al crear el agente.
 agent = Agent(
     # deps_type indica que el agente necesita dependencias y cuál es su tipo.
     deps_type=Deps,
@@ -68,7 +68,11 @@ agent = Agent(
 )
 
 
-# Herramientas. El parámetro `ctx` no aparece en el esquema que ve el modelo.
+# Herramientas: funciones que el modelo puede pedir que se ejecuten.
+# Al llamar al modelo, pydantic-ai le envía una descripción de cada herramienta
+# (esquema): nombre, descripción y parámetros. El parámetro `ctx` no se incluye
+# en el esquema, porque lo completa pydantic-ai con las dependencias (Deps) y
+# no lo decide el modelo. Para buscar_alumno, el modelo solo ve `nombre`.
 # @agent.tool registra la función como herramienta del agente.
 @agent.tool
 def listar_alumnos(ctx: RunContext[Deps]) -> list[str]:
@@ -90,7 +94,7 @@ def listar_alumnos(ctx: RunContext[Deps]) -> list[str]:
     logger.info("Herramienta listar_alumnos -> %d alumnos", len(nombres))
     return nombres
 
-
+# Otra herramienta
 @agent.tool
 def buscar_alumno(ctx: RunContext[Deps], nombre: str) -> str:
     """Devuelve la ficha de un alumno.
@@ -123,6 +127,20 @@ def buscar_alumno(ctx: RunContext[Deps], nombre: str) -> str:
 
 
 def crear_modelo() -> OpenRouterModel:
+    """Crea el modelo de OpenRouter con la clave de API del entorno.
+
+    El identificador del modelo se toma de la constante MODELO. La clave se
+    lee de la variable de entorno OPENROUTER_API_KEY, que load_dotenv carga
+    desde el archivo .env.
+
+    Returns:
+        OpenRouterModel: Modelo listo para pasar al argumento `model` de
+        agent.run_sync.
+
+    Raises:
+        SystemExit: Si la variable OPENROUTER_API_KEY no está definida o está
+            vacía. El mensaje indica qué variable falta.
+    """
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
         raise SystemExit("Falta la variable de entorno OPENROUTER_API_KEY.")
@@ -130,18 +148,33 @@ def crear_modelo() -> OpenRouterModel:
 
 
 def main() -> None:
+    """Ejecuta el agente con la pregunta hardcodeada y registra el resultado.
+
+    Pasos: configura el logging, envía PREGUNTA al agente con el directorio
+    de fichas como dependencia, y registra los mensajes intercambiados (nivel
+    DEBUG), el uso de tokens y la respuesta validada (nivel INFO).
+
+    Returns:
+        None: El resultado se registra en el log, no se devuelve.
+    """
     configurar_logging(AQUI / "clase_agentes.log")
     logger.info("Pregunta: %s", PREGUNTA)
     logger.info("Modelo: %s", MODELO)
 
+    # Se crea el modelo y se ejecuta el agente en forma síncrona.
+    # run_sync espera a que termine, a diferencia de run, que es asíncrono.
+    # El resultado es un objeto que contiene la respuesta y otra información.
     result = agent.run_sync(
         PREGUNTA,
         model=crear_modelo(),
         deps=Deps(directorio=AQUI / "fichas"),
     )
 
+    # Se itera sobre todos los mensajes intercambiados (usuario, asistente, herramientas)
+    # y se registra cada uno en el log.
     for mensaje in result.all_messages():
         logger.debug("Mensaje: %r", mensaje)
+    # Se registra el uso de tokens y la respuesta validada.
     logger.info("Uso: %s", result.usage)
     logger.info("Respuesta: %s", result.output)
 
