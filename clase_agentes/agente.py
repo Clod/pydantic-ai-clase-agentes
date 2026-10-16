@@ -24,22 +24,28 @@ from fichas import buscar_ficha, listar_fichas
 logger = logging.getLogger("clase_agentes.agente")
 
 
-# __file__ es una variable que Python define en cada módulo. Contiene la ruta del archivo que se está ejecutando: .../clase_agentes/agente.py.
+# __file__ es una variable que Python define en cada módulo.
+# Contiene la ruta del archivo de este módulo: .../clase_agentes/agente.py.
 # Path(__file__) convierte ese texto en un objeto Path de pathlib.
 # .parent devuelve el directorio que contiene el archivo: .../clase_agentes.
 # AQUI guarda ese directorio. El nombre va en mayúsculas porque es una constante por convención.
 AQUI = Path(__file__).parent
 load_dotenv(AQUI / ".env")  # antes de leer MODELO; no pisa variables ya definidas
-# Hardodeamos la pregunta para simplificar el ejemplo, pero podría pasarse como parámetro por línea de comandos.
-PREGUNTA = "¿Qué promedio tiene Juan Pérez?"
-# PREGUNTA = "¿Qué promedio tiene Juan?" # para forzar al agente a que use listar_alumnos y luego buscar_alumno
-# Tomamos el modelo de la variable de entorno OPENROUTER_MODEL. Si no existe, usamos anthropic/claude-haiku-5.5.
+# Defino las preguntas fijas en el código para simplificar el ejemplo.
+# Podrían pasarse como parámetro por línea de comandos.
+PREGUNTA1 = "¿Qué promedio tiene Juan Pérez?"
+# PREGUNTA2 omite el apellido: el modelo probablemente deba usar listar_alumnos
+# antes de buscar_alumno.
+PREGUNTA2 = "¿Qué promedio tiene Juan?"
+PREGUNTA3 = "¿Cuántos alumnos hay?"
+# Tomo el modelo de la variable de entorno OPENROUTER_MODEL; si no existe, uso anthropic/claude-haiku-5.5.
 # La variable de entorno se define en el archivo .env, que no se sube a GitHub.
 MODELO = os.environ.get("OPENROUTER_MODEL", "anthropic/claude-haiku-5.5")
 
 
-# Defino una clase para estructurar la respuesta del agente. Pydantic se encarga de validar que la respuesta sea correcta.
-# Esto es una gran ventaja de pydantic-ai, ya que evita errores de tipeo y asegura que la respuesta sea correcta.
+# Defino una clase para estructurar la respuesta del agente.
+# Pydantic valida que la respuesta tenga los campos y tipos de esta clase.
+# No valida que el contenido sea verdadero.
 class RespuestaAlumno(BaseModel):
     nombre: str
     carrera: str
@@ -59,9 +65,10 @@ agent = Agent(
     deps_type=Deps,
     # output_type indica el tipo de salida esperada.
     output_type=RespuestaAlumno,
-    # retries indica cuántas veces se reintenta la llamada al modelo en caso de error al procesar la respuesta.
+    # retries indica cuántas veces pydantic-ai puede pedir al modelo que corrija,
+    # por ejemplo cuando una herramienta lanza ModelRetry.
     retries=2,
-    # instructions indica las instrucciones que se le dan al agente.
+    # instructions es el texto que se envía al modelo en cada ejecución para fijar su comportamiento.
     instructions=(
         "Respondé preguntas sobre alumnos. Usá las herramientas para obtener "
         "los datos. No inventes datos que no estén en una ficha."
@@ -151,22 +158,23 @@ def crear_modelo() -> OpenRouterModel:
 def main() -> None:
     """Ejecuta el agente con la pregunta hardcodeada y registra el resultado.
 
-    Pasos: configura el logging, envía PREGUNTA al agente con el directorio
-    de fichas como dependencia, y registra los mensajes intercambiados (nivel
-    DEBUG), el uso de tokens y la respuesta validada (nivel INFO).
+    Pasos: configura el logging y envía al agente PREGUNTA1, PREGUNTA2 y
+    PREGUNTA3, una tras otra, con el directorio de fichas como dependencia.
+    Para cada pregunta registra los mensajes intercambiados (nivel DEBUG), el
+    uso de tokens y la respuesta validada (nivel INFO).
 
     Returns:
         None: El resultado se registra en el log, no se devuelve.
     """
     configurar_logging(AQUI / "clase_agentes.log")
-    logger.info("Pregunta: %s", PREGUNTA)
+    logger.info("Pregunta: %s", PREGUNTA1)
     logger.info("Modelo: %s", MODELO)
 
     # Se crea el modelo y se ejecuta el agente en forma síncrona.
     # run_sync espera a que termine, a diferencia de run, que es asíncrono.
     # El resultado es un objeto que contiene la respuesta y otra información.
     result = agent.run_sync(
-        PREGUNTA,
+        PREGUNTA1,
         model=crear_modelo(),
         deps=Deps(directorio=AQUI / "fichas"),
     )
@@ -176,6 +184,37 @@ def main() -> None:
     for mensaje in result.all_messages():
         logger.debug("Mensaje: %r", mensaje)
     # Se registra el uso de tokens y la respuesta validada.
+    logger.info("Uso: %s", result.usage)
+    logger.info("Respuesta: %s", result.output)
+
+    logger.info("\n\n==========================================\n\n")
+    logger.info("Pregunta: %s", PREGUNTA2)
+
+    result = agent.run_sync(
+        PREGUNTA2,
+        model=crear_modelo(),
+        deps=Deps(directorio=AQUI / "fichas"),
+    )
+
+    for mensaje in result.all_messages():
+        logger.debug("Mensaje: %r", mensaje)
+    logger.info("Uso: %s", result.usage)
+    logger.info("Respuesta: %s", result.output)
+
+    logger.info("\n\n==========================================\n\n")
+    logger.info("Pregunta: %s", PREGUNTA3)
+
+    # PREGUNTA3 pide un número, pero output_type exige RespuestaAlumno
+    # (nombre, carrera, promedio). Sirve para observar cómo responde el modelo
+    # cuando la pregunta no encaja en la salida tipada.
+    result = agent.run_sync(
+        PREGUNTA3,
+        model=crear_modelo(),
+        deps=Deps(directorio=AQUI / "fichas"),
+    )
+
+    for mensaje in result.all_messages():
+        logger.debug("Mensaje: %r", mensaje)
     logger.info("Uso: %s", result.usage)
     logger.info("Respuesta: %s", result.output)
 

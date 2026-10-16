@@ -94,6 +94,52 @@ El modelo recibe el esquema de la herramienta con un solo parámetro, `nombre`. 
 
 El modelo decide qué argumentos pasar a la herramienta. El programador decide con qué datos trabaja la herramienta. El argumento `deps` es el canal para esos datos.
 
+## Cómo conoce el agente sus herramientas
+
+Las herramientas se registran con el decorador `@agent.tool`. No existe una lista de herramientas que se pase al agente.
+
+### 1. Registro (al importar el módulo)
+
+El decorador se ejecuta cuando Python define la función:
+
+```python
+@agent.tool
+def buscar_alumno(ctx: RunContext[Deps], nombre: str) -> str:
+```
+
+El decorador guarda la función en el objeto `agent`. Para construir la descripción de la herramienta, pydantic-ai lee tres elementos de la función:
+
+| Elemento leído | Se usa para |
+|---|---|
+| Nombre de la función | Nombre de la herramienta: `buscar_alumno` |
+| Docstring | Descripción de la herramienta y de cada parámetro |
+| Anotaciones de tipo (`nombre: str`) | Tipo de cada parámetro |
+
+El parámetro `ctx` se excluye. pydantic-ai lo identifica por su anotación `RunContext[Deps]`.
+
+### 2. Envío al modelo (en cada ejecución)
+
+`agent.run_sync` envía al modelo la pregunta junto con la descripción de cada herramienta registrada. Esa descripción se llama esquema (JSON Schema). Para `buscar_alumno`:
+
+```
+{'properties': {'nombre': {'description': 'Nombre completo del alumno, ...', 'type': 'string'}}, 'required': ['nombre'], 'type': 'object'}
+```
+
+El banner de pydantic-ai muestra la cantidad de herramientas registradas al arrancar: `tools: 2`.
+
+### 3. Llamada (el modelo decide)
+
+1. El modelo responde con una solicitud: llamar a `buscar_alumno` con `nombre='Juan Pérez'`. El modelo no ejecuta nada.
+2. pydantic-ai valida los argumentos contra el esquema.
+3. pydantic-ai ejecuta la función real y le pasa `ctx` con las dependencias.
+4. pydantic-ai envía el valor devuelto al modelo en una segunda request.
+
+El log de una ejecución real lo muestra: 2 requests al modelo y una línea `Herramienta buscar_alumno(nombre='Juan Pérez')` entre ambas.
+
+### Consecuencia
+
+El modelo conoce una herramienta solo por su nombre, su docstring y sus tipos. La calidad de la docstring afecta cuándo y cómo el modelo usa la herramienta.
+
 ## Información sensible y el archivo `.env`
 
 Una clave de API no debe escribirse en el código. Un valor escrito en el código queda en el historial de git y en cada copia del repositorio, y en un repositorio público cualquiera puede usarlo. Una clave expuesta debe revocarse y reemplazarse.
