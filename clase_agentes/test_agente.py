@@ -1,5 +1,6 @@
 """Pruebas sin red: un modelo simulado (FunctionModel) reemplaza a OpenRouter."""
 
+import logging
 from pathlib import Path
 
 from pydantic_ai import ModelResponse, ToolCallPart
@@ -7,6 +8,7 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from agente import Deps, RespuestaAlumno, agent
 from fichas import buscar_ficha, listar_fichas
+from registro_turnos import registrar_turnos
 
 FICHAS = Path(__file__).parent / "fichas"
 FINAL = {"nombre": "Juan Pérez", "carrera": "Licenciatura en Sistemas", "promedio": 8.4}
@@ -71,3 +73,17 @@ def test_agente_reintenta_si_la_ficha_no_existe():
     assert result.output.promedio == 8.4
     mensajes = repr(result.all_messages())
     assert "No existe una ficha" in mensajes
+
+
+def test_registrar_turnos_escribe_un_turno_por_request(caplog):
+    result = agent.run_sync(
+        "¿Qué promedio tiene Juan Pérez?",
+        model=_modelo_simulado(["Juan Pérez"]),
+        deps=Deps(directorio=FICHAS),
+    )
+    with caplog.at_level(logging.INFO, logger="registro_turnos"):
+        registrar_turnos(result.all_messages())
+    lineas = [r.getMessage() for r in caplog.records]
+    assert lineas[0].startswith("Turno 1 | pydantic-ai envía al modelo la pregunta")
+    assert any("Turno 1 | el modelo pide ejecutar buscar_alumno" in l for l in lineas)
+    assert any("Turno 2 | pydantic-ai envía al modelo el resultado de buscar_alumno" in l for l in lineas)

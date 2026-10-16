@@ -15,6 +15,7 @@ Este proyecto contiene, en el directorio `clase_agentes/`, un script que respond
 | Archivo (en `clase_agentes/`) | Contenido |
 |---|---|
 | `agente.py` | Script principal: modelo de salida, dependencias, agente, herramientas |
+| `registro_turnos.py` | Registro en el log de los turnos entre pydantic-ai y el modelo |
 | `fichas.py` | Búsqueda de fichas en el directorio (prevención de path traversal) |
 | `config_logging.py` | Configuración de logging con la biblioteca estándar |
 | `fichas/*.md` | 5 fichas de alumnos con nombre, edad, carrera y promedio |
@@ -139,6 +140,28 @@ El log de una ejecución real lo muestra: 2 requests al modelo y una línea `Her
 ### Consecuencia
 
 El modelo conoce una herramienta solo por su nombre, su docstring y sus tipos. La calidad de la docstring afecta cuándo y cómo el modelo usa la herramienta.
+
+### Registro de turnos
+
+pydantic-ai no escribe en el log los turnos que resuelve. `registro_turnos.py` los reconstruye a partir de `result.all_messages()` y escribe una línea INFO por evento.
+
+Un turno es una request al modelo y su respuesta. pydantic-ai encadena los turnos automáticamente: si el modelo pide una herramienta, pydantic-ai la ejecuta, envía el resultado en una nueva request y repite hasta que el modelo entrega la respuesta final.
+
+Salida real para `¿Qué promedio tiene Juan?`:
+
+```
+Turno 1 | pydantic-ai envía al modelo la pregunta: ¿Qué promedio tiene Juan?
+Turno 1 | el modelo pide ejecutar listar_alumnos({})
+Turno 1 | tokens: entrada=1083, salida=181
+Turno 2 | pydantic-ai envía al modelo el resultado de listar_alumnos: ['Juan Pérez', 'Lucas Fernández', ...]
+Turno 2 | el modelo pide ejecutar buscar_alumno({'nombre': 'Juan Pérez'})
+Turno 2 | tokens: entrada=1313, salida=59
+Turno 3 | pydantic-ai envía al modelo el resultado de buscar_alumno: # Juan Pérez - Nombre: Juan Pérez - ...
+Turno 3 | el modelo entrega texto: {"nombre": "Juan Pérez", "carrera": "Licenciatura en Sistemas", "promedio": 8.4}
+Turno 3 | tokens: entrada=1438, salida=46
+```
+
+Las líneas `Herramienta ...` del log se escriben en el momento en que se ejecuta cada herramienta. Las líneas `Turno N | ...` se escriben al terminar la ejecución, todas juntas.
 
 ## Información sensible y el archivo `.env`
 

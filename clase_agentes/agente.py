@@ -19,6 +19,7 @@ from pydantic_ai.providers.openrouter import OpenRouterProvider
 
 from config_logging import configurar_logging
 from fichas import buscar_ficha, listar_fichas
+from registro_turnos import registrar_turnos
 
 # Defino la etiqueta para que el logger marque los eventos de este módulo.
 logger = logging.getLogger("clase_agentes.agente")
@@ -183,6 +184,7 @@ def main() -> None:
     # y se registra cada uno en el log.
     for mensaje in result.all_messages():
         logger.debug("Mensaje: %r", mensaje)
+    registrar_turnos(result.all_messages())
     # Se registra el uso de tokens y la respuesta validada.
     logger.info("Uso: %s", result.usage)
     logger.info("Respuesta: %s", result.output)
@@ -198,6 +200,7 @@ def main() -> None:
 
     for mensaje in result.all_messages():
         logger.debug("Mensaje: %r", mensaje)
+    registrar_turnos(result.all_messages())
     logger.info("Uso: %s", result.usage)
     logger.info("Respuesta: %s", result.output)
 
@@ -215,6 +218,7 @@ def main() -> None:
 
     for mensaje in result.all_messages():
         logger.debug("Mensaje: %r", mensaje)
+    registrar_turnos(result.all_messages())
     logger.info("Uso: %s", result.usage)
     logger.info("Respuesta: %s", result.output)
 
