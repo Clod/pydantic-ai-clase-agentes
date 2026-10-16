@@ -32,6 +32,7 @@ AQUI = Path(__file__).parent
 load_dotenv(AQUI / ".env")  # antes de leer MODELO; no pisa variables ya definidas
 # Hardodeamos la pregunta para simplificar el ejemplo, pero podría pasarse como parámetro por línea de comandos.
 PREGUNTA = "¿Qué promedio tiene Juan Pérez?"
+# PREGUNTA = "¿Qué promedio tiene Juan?" # para forzar al agente a que use listar_alumnos y luego buscar_alumno
 # Tomamos el modelo de la variable de entorno OPENROUTER_MODEL. Si no existe, usamos anthropic/claude-haiku-5.5.
 # La variable de entorno se define en el archivo .env, que no se sube a GitHub.
 MODELO = os.environ.get("OPENROUTER_MODEL", "anthropic/claude-haiku-5.5")
